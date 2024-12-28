@@ -72,5 +72,4 @@ async def find_long_in_db(url, collection_name='URL'):
 
 if __name__ == "__main__":
     asyncio.run(save_to_db())
-    
     # print(asyncio.run(find_short_in_db("https://short04Hbf")))
