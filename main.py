@@ -1,4 +1,6 @@
 import asyncio
+import json
+import subprocess
 from req import *
 from pymongo import MongoClient
 from urllib.parse import urlparse
@@ -37,16 +39,19 @@ async def create_short_url(n=5):
         string.digits) for _ in range(n)
     )
 
-async def save_to_db(collection_name='URL'):
+async def save_to_db(url,collection_name='URL'):
     try:
-        url= await get_url_input()
         short_url= await create_short_url()
 
         db = connect_to_db()
         collection = db[collection_name]
-        if not collection.find_one({"original_url": url}):
+        obj = collection.find_one({"original_url": url})
+        if not obj:
             document = {"original_url": url, "short_url": short_url}
             insert_doc = collection.insert_one(document)
+            return f'http://127.0.0.1:8000/{short_url}'
+        else:
+            return f'http://127.0.0.1:8000/{obj["short_url"]}'
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
@@ -69,7 +74,37 @@ async def find_long_in_db(url, collection_name='URL'):
     except Exception as e:
         print(f"An unexpected error occurred: {e}") 
 
+async def run_fastapi():
+    try:
+        # Execute the command
+        subprocess.run(["fastapi", "dev", "req.py"], check=True)
+    except FileNotFoundError:
+        print("FastAPI is not installed or the command 'fastapi' is not recognized.")
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with return code {e.returncode}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
+def all_long_url(collection_name='URL'):
+    try:
+        db = connect_to_db()
+        collection = db[collection_name]
+        links = [{"original_url": obj["original_url"]} for obj in collection.find()]
+        return links
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+def all_short_url(output_file='all_short_url.json', collection_name='URL'):
+    try:
+        db = connect_to_db()
+        collection = db[collection_name]
+        links = [{"short_url": obj["short_url"]} for obj in collection.find()]
+        return links
+    
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+        
 if __name__ == "__main__":
-    asyncio.run(save_to_db())
-    # print(asyncio.run(find_short_in_db("https://short04Hbf")))
+    all_long_url()
